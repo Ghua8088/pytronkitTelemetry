@@ -1,0 +1,12 @@
+{
+    "name": "pytronkitTelemetry",
+    "version": "1.0.0",
+    "entry_point": "main:PytronkittelemetryPlugin",
+    "python_dependencies": ["requests", "psutil"],
+    "npm_dependencies": {},
+    "config": {
+        "telemetry_url": "https://api.myapp.com/telemetry",
+        "crash_url": "https://api.myapp.com/crash"
+    },
+    "description": "Auto-generated Pytron plugin"
+}
