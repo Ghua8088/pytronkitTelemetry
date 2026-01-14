@@ -17,7 +17,13 @@ class PytronkittelemetryPlugin:
         # "activity": Heartbeats + Crashes (Default)
         # "errors_only": Only catch unhandled exceptions
         # "minimal": Heartbeats every 5 mins + Crashes
-        self.mode = mode or app.config.get("telemetry_mode", "activity")
+        # Normalize mode
+        if isinstance(self.mode, str):
+            self.mode = self.mode.lower().strip()
+            if self.mode in ["error_only", "errors_only"]:
+                self.mode = "errors_only"
+
+        # ...
         
         # Priority: 1. Constructor, 2. App Config, 3. Plugin Manifest Config, 4. Default
         # Note: self.app.plugins might not be fully populated yet if called from load()
@@ -31,7 +37,9 @@ class PytronkittelemetryPlugin:
                     plugin_manifest_config = p.config
                     break
 
+        # Check for both 'url' and 'telemetry_url' aliases
         self.telemetry_url = telemetry_url or \
+            kwargs.get("url") or \
             app.config.get("telemetry_url") or \
             plugin_manifest_config.get("telemetry_url") or \
             "https://api.myapp.com/telemetry"
@@ -61,6 +69,8 @@ class PytronkittelemetryPlugin:
         # 3. Snapshot State periodically if enabled
         if self.mode != "errors_only":
             self._start_snapshot_timer()
+        else:
+            self.logger.info("Snapshot timer skipped (errors_only mode)")
 
         self.logger.info(f"Telemetry Flight Recorder started in '{self.mode}' mode.")
 
@@ -91,7 +101,9 @@ class PytronkittelemetryPlugin:
             if not self.app or not hasattr(self.app, "state"):
                 return
             
-            state_snapshot = self.app.state.to_dict()
+            # Create a shallow copy first to avoid iteration errors during snapshotting
+            # if the main thread is modifying the state simultaneously.
+            state_snapshot = self.app.state.to_dict().copy() 
             
             # SANITIZATION: Remove sensitive keys before queuing
             safe_state = {k: v for k, v in state_snapshot.items() if "password" not in k.lower() and "token" not in k.lower()}
@@ -132,7 +144,7 @@ class PytronkittelemetryPlugin:
             "error": str(exc_value),
             "traceback": "".join(traceback.format_exception(exc_type, exc_value, exc_traceback)),
             "os": platform.platform(),
-            "last_state": self.app.state.to_dict()
+            "last_state": self.app.state.to_dict().copy()
         }
         
         # Force a synchronous send because the process is dying
