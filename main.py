@@ -18,10 +18,11 @@ class PytronkittelemetryPlugin:
         # "errors_only": Only catch unhandled exceptions
         # "minimal": Heartbeats every 5 mins + Crashes
         # Normalize mode
-        if isinstance(self.mode, str):
-            self.mode = self.mode.lower().strip()
-            if self.mode in ["error_only", "errors_only"]:
-                self.mode = "errors_only"
+        if isinstance(mode, str):
+            mode = mode.lower().strip()
+            if mode in ["error_only", "errors_only"]:
+                mode = "errors_only"
+        self.mode = mode
 
         # ...
         
